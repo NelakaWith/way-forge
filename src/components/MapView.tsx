@@ -5,6 +5,7 @@ import { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import NodeMarker from "./NodeMarker";
 import RouteLine from "./RouteLine";
+import RoadRoute from "./RoadRoute";
 
 // Fix for default markers in Next.js
 import L from "leaflet";
@@ -35,6 +36,13 @@ interface MapRoute {
   weight?: number;
 }
 
+interface RoadRouteInfo {
+  distance: number;
+  time: number;
+  instructions?: L.Routing.IInstruction[];
+  coordinates?: L.LatLng[];
+}
+
 interface MapViewProps {
   center?: LatLngExpression;
   zoom?: number;
@@ -42,6 +50,11 @@ interface MapViewProps {
   nodes?: MapNode[];
   routes?: MapRoute[];
   onNodeClick?: (node: MapNode) => void;
+  // Road routing props
+  useRoadRouting?: boolean;
+  roadRouteStart?: LatLngExpression | null;
+  roadRouteEnd?: LatLngExpression | null;
+  onRoadRouteFound?: (route: RoadRouteInfo) => void;
 }
 
 export default function MapView({
@@ -51,6 +64,10 @@ export default function MapView({
   nodes = [],
   routes = [],
   onNodeClick,
+  useRoadRouting = false,
+  roadRouteStart = null,
+  roadRouteEnd = null,
+  onRoadRouteFound,
 }: MapViewProps) {
   return (
     <div className={className}>
@@ -65,15 +82,25 @@ export default function MapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* Render route lines */}
-        {routes.map((route) => (
-          <RouteLine
-            key={route.id}
-            positions={route.positions}
-            color={route.color}
-            weight={route.weight}
+        {/* Road-based routing */}
+        {useRoadRouting && (
+          <RoadRoute
+            startPoint={roadRouteStart}
+            endPoint={roadRouteEnd}
+            onRouteFound={onRoadRouteFound}
           />
-        ))}
+        )}
+
+        {/* Render route lines (for algorithm-based routing) */}
+        {!useRoadRouting &&
+          routes.map((route) => (
+            <RouteLine
+              key={route.id}
+              positions={route.positions}
+              color={route.color}
+              weight={route.weight}
+            />
+          ))}
 
         {/* Render nodes */}
         {nodes.map((node) => (

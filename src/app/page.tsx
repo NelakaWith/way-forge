@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import { LatLngExpression } from "leaflet";
 import { useState } from "react";
@@ -17,6 +16,7 @@ import {
   createSimpleGraph,
   RouteResult,
 } from "@/lib/dijkstra";
+import LocationInput from "@/components/LocationInput";
 
 // Dynamically import MapView to avoid SSR issues with Leaflet
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -80,52 +80,99 @@ const availableNodes = [
 ];
 
 export default function Home() {
-  const [startLocation, setStartLocation] = useState<string>("");
-  const [endLocation, setEndLocation] = useState<string>("");
+  // Location states for autocomplete inputs
+  const [startLocationInput, setStartLocationInput] = useState<string>("");
+  const [endLocationInput, setEndLocationInput] = useState<string>("");
+  const [startPosition, setStartPosition] = useState<LatLngExpression | null>(
+    null
+  );
+  const [endPosition, setEndPosition] = useState<LatLngExpression | null>(null);
+
+  // Legacy marker-based selection (for waypoints)
+  const [selectedWaypoints, setSelectedWaypoints] = useState<string[]>([]);
+
   const [optimizedRoute, setOptimizedRoute] = useState<RouteResult | null>(
     null
   );
   const [isCalculating, setIsCalculating] = useState(false);
+  const [useRoadRouting, setUseRoadRouting] = useState(true); // Default to road routing
+  const [roadRouteInfo, setRoadRouteInfo] = useState<{
+    distance: number;
+    time: number;
+  } | null>(null);
 
   // Create graph for route calculation
   const graph = createSimpleGraph(availableNodes);
 
-  // Convert available nodes to MapNode format
+  // Convert available nodes to MapNode format (these will be waypoints now)
   const mapNodes: MapNode[] = availableNodes.map((node) => ({
     id: node.id,
     position: node.position,
     title: node.name,
-    description: `Click to select as start/end point`,
+    description: `Waypoint: ${node.name}`,
   }));
 
-  // Create route visualization if route exists
-  const routes = optimizedRoute
-    ? [
-        {
-          id: "optimized-route",
-          positions: optimizedRoute.coordinates,
-          color: "#22c55e", // green-500
-          weight: 4,
-        },
-      ]
-    : [];
+  // Create route visualization if route exists (for algorithm routing)
+  const routes =
+    optimizedRoute && !useRoadRouting
+      ? [
+          {
+            id: "optimized-route",
+            positions: optimizedRoute.coordinates,
+            color: "#22c55e", // green-500
+            weight: 4,
+          },
+        ]
+      : [];
+
+  const handleWaypointClick = (node: MapNode) => {
+    // Toggle waypoint selection
+    setSelectedWaypoints((prev) => {
+      if (prev.includes(node.id)) {
+        return prev.filter((id) => id !== node.id);
+      } else {
+        return [...prev, node.id];
+      }
+    });
+  };
+
+  const handleStartLocationSelect = (location: {
+    name: string;
+    position: LatLngExpression;
+  }) => {
+    setStartPosition(location.position);
+    setRoadRouteInfo(null); // Clear previous route
+  };
+
+  const handleEndLocationSelect = (location: {
+    name: string;
+    position: LatLngExpression;
+  }) => {
+    setEndPosition(location.position);
+    setRoadRouteInfo(null); // Clear previous route
+  };
 
   const handleNodeClick = (node: MapNode) => {
-    if (!startLocation) {
-      setStartLocation(node.id);
-    } else if (!endLocation && node.id !== startLocation) {
-      setEndLocation(node.id);
-    } else {
-      // Reset and start over
-      setStartLocation(node.id);
-      setEndLocation("");
-      setOptimizedRoute(null);
-    }
+    // For waypoints selection in algorithm mode
+    handleWaypointClick(node);
   };
 
   const calculateRoute = async () => {
-    if (!startLocation || !endLocation) {
-      alert("Please select both start and end locations");
+    if (useRoadRouting) {
+      // For road routing, check if we have coordinates
+      if (!startPosition || !endPosition) {
+        alert(
+          "Please enter both start and end locations using the search inputs"
+        );
+        return;
+      }
+      // Road routing happens automatically via the RoadRoute component
+      return;
+    }
+
+    // For algorithm routing, use waypoints
+    if (selectedWaypoints.length < 2) {
+      alert("Please select at least 2 waypoints for algorithm routing");
       return;
     }
 
@@ -134,21 +181,31 @@ export default function Home() {
     // Simulate some processing time for demo
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const result = findShortestPath(graph, startLocation, endLocation);
+    const startNodeId = selectedWaypoints[0];
+    const endNodeId = selectedWaypoints[selectedWaypoints.length - 1];
+    const result = findShortestPath(graph, startNodeId, endNodeId);
 
     if (result) {
       setOptimizedRoute(result);
     } else {
-      alert("No route found between selected locations");
+      alert("No route found between selected waypoints");
     }
 
     setIsCalculating(false);
   };
 
   const resetRoute = () => {
-    setStartLocation("");
-    setEndLocation("");
+    setStartLocationInput("");
+    setEndLocationInput("");
+    setStartPosition(null);
+    setEndPosition(null);
+    setSelectedWaypoints([]);
     setOptimizedRoute(null);
+    setRoadRouteInfo(null);
+  };
+
+  const handleRoadRouteFound = (route: { distance: number; time: number }) => {
+    setRoadRouteInfo(route);
   };
 
   const getLocationName = (nodeId: string) => {
@@ -170,11 +227,41 @@ export default function Home() {
           <CardHeader className="px-0 pt-0">
             <CardTitle>Interactive Route Optimization</CardTitle>
             <CardDescription>
-              Click on map markers to select start and end points, then
-              calculate the optimal route
+              🛣️ Road Routing: Use search inputs to find real driving routes
+              between any locations
+              <br />
+              📐 Algorithm: Click waypoint markers for Dijkstra pathfinding
+              optimization
             </CardDescription>
           </CardHeader>
           <CardContent className="px-0 space-y-4">
+            {/* Routing Mode Toggle */}
+            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+              <label className="text-sm font-medium">Routing Mode:</label>
+              <div className="flex gap-2">
+                <Button
+                  variant={useRoadRouting ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setUseRoadRouting(true);
+                    setOptimizedRoute(null);
+                  }}
+                >
+                  🛣️ Road Routing
+                </Button>
+                <Button
+                  variant={!useRoadRouting ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setUseRoadRouting(false);
+                    setRoadRouteInfo(null);
+                  }}
+                >
+                  📐 Algorithm
+                </Button>
+              </div>
+            </div>
+
             <MapView
               className="h-96 w-full"
               center={[6.9271, 79.8612]}
@@ -182,37 +269,46 @@ export default function Home() {
               nodes={mapNodes}
               routes={routes}
               onNodeClick={handleNodeClick}
+              useRoadRouting={useRoadRouting}
+              roadRouteStart={startPosition}
+              roadRouteEnd={endPosition}
+              onRoadRouteFound={handleRoadRouteFound}
             />
 
             {/* Route Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Start Location</label>
-                <Input
-                  value={startLocation ? getLocationName(startLocation) : ""}
-                  placeholder="Click a marker to select start"
-                  readOnly
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">End Location</label>
-                <Input
-                  value={endLocation ? getLocationName(endLocation) : ""}
-                  placeholder="Click a marker to select end"
-                  readOnly
-                  className="bg-muted"
-                />
-              </div>
+              <LocationInput
+                value={startLocationInput}
+                onChange={setStartLocationInput}
+                onLocationSelect={handleStartLocationSelect}
+                placeholder="Search for start location..."
+                label="Start Location"
+              />
+              <LocationInput
+                value={endLocationInput}
+                onChange={setEndLocationInput}
+                onLocationSelect={handleEndLocationSelect}
+                placeholder="Search for end location..."
+                label="End Location"
+              />
               <div className="space-y-2">
                 <label className="text-sm font-medium">Actions</label>
                 <div className="flex gap-2">
                   <Button
                     onClick={calculateRoute}
-                    disabled={!startLocation || !endLocation || isCalculating}
+                    disabled={
+                      isCalculating ||
+                      (useRoadRouting
+                        ? !startPosition || !endPosition
+                        : selectedWaypoints.length < 2)
+                    }
                     className="flex-1"
                   >
-                    {isCalculating ? "Calculating..." : "Calculate Route"}
+                    {isCalculating
+                      ? "Calculating..."
+                      : useRoadRouting
+                      ? "Find Route"
+                      : "Calculate Route"}
                   </Button>
                   <Button variant="outline" onClick={resetRoute}>
                     Reset
@@ -222,12 +318,12 @@ export default function Home() {
             </div>
 
             {/* Route Results */}
-            {optimizedRoute && (
+            {optimizedRoute && !useRoadRouting && (
               <Card className="p-4 bg-green-50 border-green-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold text-green-800">
-                      Route Found!
+                      Algorithm Route Found!
                     </h3>
                     <p className="text-sm text-green-600">
                       Distance:{" "}
@@ -242,17 +338,49 @@ export default function Home() {
                         .join(" → ")}
                     </p>
                   </div>
-                  <div className="text-green-500">✅</div>
+                  <div className="text-green-500">📐</div>
                 </div>
               </Card>
             )}
+
+            {/* Road Route Results */}
+            {roadRouteInfo &&
+              useRoadRouting &&
+              startLocationInput &&
+              endLocationInput && (
+                <Card className="p-4 bg-blue-50 border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-blue-800">
+                        Road Route Found!
+                      </h3>
+                      <p className="text-sm text-blue-600">
+                        Distance:{" "}
+                        <span className="font-medium">
+                          {roadRouteInfo.distance} km
+                        </span>
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Estimated Time:{" "}
+                        <span className="font-medium">
+                          {roadRouteInfo.time} minutes
+                        </span>
+                      </p>
+                      <p className="text-sm text-blue-600">
+                        Route: {startLocationInput} → {endLocationInput}
+                      </p>
+                    </div>
+                    <div className="text-blue-500">🛣️</div>
+                  </div>
+                </Card>
+              )}
           </CardContent>
         </Card>
 
         {/* Features Section */}
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-semibold">Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="p-4 bg-card rounded-lg border">
               <h3 className="font-medium mb-2">🎯 Smart Algorithms</h3>
               <p className="text-muted-foreground">
@@ -260,15 +388,23 @@ export default function Home() {
               </p>
             </div>
             <div className="p-4 bg-card rounded-lg border">
-              <h3 className="font-medium mb-2">🗺️ Interactive Maps</h3>
+              <h3 className="font-medium mb-2">🛣️ Real Road Routing</h3>
               <p className="text-muted-foreground">
-                Leaflet-powered visualization with click-to-select nodes
+                OSRM-powered routing with actual road data and turn-by-turn
+                directions
+              </p>
+            </div>
+            <div className="p-4 bg-card rounded-lg border">
+              <h3 className="font-medium mb-2">� Smart Search</h3>
+              <p className="text-muted-foreground">
+                Autocomplete location search using OpenStreetMap geocoding
               </p>
             </div>
             <div className="p-4 bg-card rounded-lg border">
               <h3 className="font-medium mb-2">📊 Route Analytics</h3>
               <p className="text-muted-foreground">
-                Real-time distance calculation and path optimization
+                Real-time distance and time calculation with multiple routing
+                modes
               </p>
             </div>
           </div>
@@ -279,19 +415,38 @@ export default function Home() {
           <h3 className="font-semibold text-blue-800 mb-2">How to Use</h3>
           <ol className="text-sm text-blue-700 space-y-1">
             <li>
-              1. Click on any blue marker on the map to select your start
-              location
-            </li>
-            <li>2. Click on another marker to select your destination</li>
-            <li>
-              3. Click &quot;Calculate Route&quot; to find the optimal path
+              1. Choose your routing mode: 🛣️ Real Road Routing or 📐 Algorithm
             </li>
             <li>
-              4. The green line shows the optimized route with distance
-              information
+              2. <strong>For Road Routing:</strong> Use the search inputs to
+              find any location by typing (e.g., &quot;Galle Face Green,
+              Colombo&quot;)
             </li>
-            <li>5. Click &quot;Reset&quot; to start over with new locations</li>
+            <li>
+              3. <strong>For Algorithm Mode:</strong> Click on the blue waypoint
+              markers to select nodes for pathfinding
+            </li>
+            <li>
+              4. Click &quot;Find Route&quot; (Road) or &quot;Calculate
+              Route&quot; (Algorithm) to generate your route
+            </li>
+            <li>
+              5. Road routing shows real driving directions with time estimates,
+              Algorithm shows optimized straight-line paths
+            </li>
+            <li>
+              6. Click &quot;Reset&quot; to clear all selections and start over
+            </li>
           </ol>
+          <div className="mt-3 pt-3 border-t border-blue-200">
+            <p className="text-xs text-blue-600">
+              <strong>🛣️ Road Routing:</strong> Uses OpenStreetMap geocoding and
+              OSRM for real-world driving routes.
+              <br />
+              <strong>📐 Algorithm:</strong> Uses Dijkstra pathfinding between
+              predefined waypoints in Colombo area.
+            </p>
+          </div>
         </Card>
       </div>
     </div>
