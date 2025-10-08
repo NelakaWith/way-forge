@@ -118,7 +118,7 @@ See [TODO.md](./TODO.md) for current development progress and upcoming features.
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the GNU General Public License v3.0.
 
 ---
 
