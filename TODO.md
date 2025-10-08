@@ -19,12 +19,12 @@ Based on PLAN.md - A comprehensive checklist for building the Route Optimizer / 
 
 ### Project Structure
 
-- [ ] Create folder structure as per PLAN.md:
-  - [ ] `app/(public)/` - public pages
+- [x] ~~Create folder structure as per PLAN.md:~~
+  - [x] ~~`app/(public)/` - public pages~~
   - [ ] `app/(dashboard)/` - authenticated pages
   - [ ] `app/api/` - API routes
-  - [ ] `components/` - reusable components
-  - [ ] `lib/` - utilities and algorithms
+  - [x] ~~`components/` - reusable components~~
+  - [x] ~~`lib/` - utilities and algorithms~~
   - [ ] `prisma/` - database schema
   - [ ] `public/icons/` and `public/map-assets/` - static assets
 
@@ -34,19 +34,19 @@ Based on PLAN.md - A comprehensive checklist for building the Route Optimizer / 
 
 ### Landing Page (`/`)
 
-- [ ] Create hero section with app overview
-- [ ] Add feature highlights section
-- [ ] Create CTA buttons (Get Started, Try Demo)
+- [x] ~~Create hero section with app overview~~
+- [x] ~~Add feature highlights section~~
+- [x] ~~Create CTA buttons (Get Started, Try Demo)~~
 - [ ] Add responsive navigation bar
 - [ ] Implement footer with links
 
 ### Demo Page (`/demo`)
 
-- [ ] Set up public route optimizer demo
-- [ ] Create basic map view with sample nodes
-- [ ] Add demo route calculation
-- [ ] Include sample data for demonstration
-- [ ] Add instructions/help text
+- [x] ~~Set up public route optimizer demo~~
+- [x] ~~Create basic map view with sample nodes~~
+- [x] ~~Add demo route calculation~~
+- [x] ~~Include sample data for demonstration~~
+- [x] ~~Add instructions/help text~~
 
 ---
 
@@ -100,11 +100,11 @@ Based on PLAN.md - A comprehensive checklist for building the Route Optimizer / 
 
 ### Core Map Components
 
-- [ ] Create `MapView.tsx` component with Leaflet
-- [ ] Build `NodeMarker.tsx` for map points
-- [ ] Implement `RouteLine.tsx` for path visualization
-- [ ] Add map controls (zoom, center, layers)
-- [ ] Handle map click events for node creation
+- [x] ~~Create `MapView.tsx` component with Leaflet~~
+- [x] ~~Build `NodeMarker.tsx` for map points~~
+- [x] ~~Implement `RouteLine.tsx` for path visualization~~
+- [x] ~~Add map controls (zoom, center, layers)~~
+- [x] ~~Handle map click events for node creation~~
 
 ### Nodes Management (`/dashboard/nodes`)
 
@@ -121,11 +121,11 @@ Based on PLAN.md - A comprehensive checklist for building the Route Optimizer / 
 
 ### Algorithm Implementation
 
-- [ ] Implement Dijkstra's shortest path algorithm (`lib/dijkstra.ts`)
+- [x] ~~Implement Dijkstra's shortest path algorithm (`lib/dijkstra.ts`)~~
 - [ ] Add A\* algorithm as alternative option
-- [ ] Create graph data structure utilities
-- [ ] Add distance calculation functions (haversine formula)
-- [ ] Implement route optimization logic
+- [x] ~~Create graph data structure utilities~~
+- [x] ~~Add distance calculation functions (haversine formula)~~
+- [x] ~~Implement route optimization logic~~
 
 ### Routes Management (`/dashboard/routes`)
 

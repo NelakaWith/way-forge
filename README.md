@@ -5,7 +5,7 @@ A **Next.js 14** web application that visualizes and optimizes routes between mu
 ## 🚀 Features
 
 - 🗺️ **Interactive Maps** - Leaflet-powered visualization with real-time updates
-- 🎯 **Smart Algorithms** - Dijkstra & A* pathfinding for optimal routes
+- 🎯 **Smart Algorithms** - Dijkstra & A\* pathfinding for optimal routes
 - 📊 **Analytics Dashboard** - Track performance and optimize your routes
 - 🎨 **Modern UI** - Built with shadcn/ui and Tailwind CSS
 - 🔒 **Authentication** - Secure user management with NextAuth.js
@@ -14,7 +14,7 @@ A **Next.js 14** web application that visualizes and optimizes routes between mu
 
 - **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui
 - **Mapping**: Leaflet + React-Leaflet
-- **Algorithms**: Custom Dijkstra / A* implementation
+- **Algorithms**: Custom Dijkstra / A\* implementation
 - **Database**: Prisma + PostgreSQL
 - **Auth**: NextAuth.js
 - **Charts**: Recharts
@@ -23,23 +23,26 @@ A **Next.js 14** web application that visualizes and optimizes routes between mu
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm, yarn, or pnpm
 
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/NelakaWith/way-forge.git
 cd way-forge
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -65,7 +68,7 @@ See [COMMITIZEN.md](./COMMITIZEN.md) for detailed commit guidelines.
 ### Scripts
 
 - `npm run dev` - Start development server
-- `npm run build` - Build for production  
+- `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run commit` - Interactive commit with Commitizen
@@ -91,7 +94,7 @@ way-forge/
 ## 🗺️ Map Components
 
 - **MapView** - Main interactive map container
-- **NodeMarker** - Customizable map markers with popups  
+- **NodeMarker** - Customizable map markers with popups
 - **RouteLine** - Polyline visualization for routes
 
 ## 📋 Development Status
