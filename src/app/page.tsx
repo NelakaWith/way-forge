@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import { LatLngExpression } from "leaflet";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   findShortestPath,
   createSimpleGraph,
@@ -140,6 +140,7 @@ export default function Home() {
     name: string;
     position: LatLngExpression;
   }) => {
+    console.log("Start location selected:", location);
     setStartPosition(location.position);
     setRoadRouteInfo(null); // Clear previous route
   };
@@ -148,8 +149,19 @@ export default function Home() {
     name: string;
     position: LatLngExpression;
   }) => {
+    console.log("End location selected:", location);
     setEndPosition(location.position);
     setRoadRouteInfo(null); // Clear previous route
+  };
+
+  const handleStartLocationClear = () => {
+    setStartPosition(null);
+    setRoadRouteInfo(null);
+  };
+
+  const handleEndLocationClear = () => {
+    setEndPosition(null);
+    setRoadRouteInfo(null);
   };
 
   const handleNodeClick = (node: MapNode) => {
@@ -167,6 +179,8 @@ export default function Home() {
         return;
       }
       // Road routing happens automatically via the RoadRoute component
+      // This button click just validates that we have the required data
+      console.log("Road routing will be handled by RoadRoute component");
       return;
     }
 
@@ -195,6 +209,7 @@ export default function Home() {
   };
 
   const resetRoute = () => {
+    console.log("Resetting route...");
     setStartLocationInput("");
     setEndLocationInput("");
     setStartPosition(null);
@@ -202,11 +217,15 @@ export default function Home() {
     setSelectedWaypoints([]);
     setOptimizedRoute(null);
     setRoadRouteInfo(null);
+    console.log("Route reset complete");
   };
 
-  const handleRoadRouteFound = (route: { distance: number; time: number }) => {
-    setRoadRouteInfo(route);
-  };
+  const handleRoadRouteFound = useCallback(
+    (route: { distance: number; time: number }) => {
+      setRoadRouteInfo(route);
+    },
+    []
+  );
 
   const getLocationName = (nodeId: string) => {
     return availableNodes.find((node) => node.id === nodeId)?.name || nodeId;
@@ -281,6 +300,7 @@ export default function Home() {
                 value={startLocationInput}
                 onChange={setStartLocationInput}
                 onLocationSelect={handleStartLocationSelect}
+                onClear={handleStartLocationClear}
                 placeholder="Search for start location..."
                 label="Start Location"
               />
@@ -288,6 +308,7 @@ export default function Home() {
                 value={endLocationInput}
                 onChange={setEndLocationInput}
                 onLocationSelect={handleEndLocationSelect}
+                onClear={handleEndLocationClear}
                 placeholder="Search for end location..."
                 label="End Location"
               />
@@ -314,6 +335,14 @@ export default function Home() {
                     Reset
                   </Button>
                 </div>
+                {/* Debug info */}
+                {process.env.NODE_ENV === "development" && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Debug: Start: {startPosition ? "✓" : "✗"}, End:{" "}
+                    {endPosition ? "✓" : "✗"}, Mode:{" "}
+                    {useRoadRouting ? "Road" : "Algorithm"}
+                  </div>
+                )}
               </div>
             </div>
 

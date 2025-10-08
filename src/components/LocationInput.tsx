@@ -21,6 +21,7 @@ interface LocationInputProps {
     name: string;
     position: LatLngExpression;
   }) => void;
+  onClear?: () => void; // Add onClear callback
   placeholder?: string;
   label?: string;
 }
@@ -29,6 +30,7 @@ export default function LocationInput({
   value,
   onChange,
   onLocationSelect,
+  onClear,
   placeholder = "Search for a location...",
   label,
 }: LocationInputProps) {
@@ -47,17 +49,34 @@ export default function LocationInput({
     setIsLoading(true);
     try {
       // Using Nominatim (OpenStreetMap) geocoding service
+      // First try with Sri Lanka priority, then fallback to global search
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
           query
-        )}&limit=5&countrycodes=lk&addressdetails=1`
+        )}&limit=3&countrycodes=lk&addressdetails=1`
       );
 
+      let data: LocationSuggestion[] = [];
       if (response.ok) {
-        const data: LocationSuggestion[] = await response.json();
-        setSuggestions(data);
-        setShowSuggestions(true);
+        data = await response.json();
       }
+
+      // If we don't have enough results from Sri Lanka, search globally
+      if (data.length < 3) {
+        const globalResponse = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            query
+          )}&limit=${5 - data.length}&addressdetails=1`
+        );
+
+        if (globalResponse.ok) {
+          const globalData: LocationSuggestion[] = await globalResponse.json();
+          data = [...data, ...globalData];
+        }
+      }
+
+      setSuggestions(data);
+      setShowSuggestions(true);
     } catch (error) {
       console.error("Error searching locations:", error);
       setSuggestions([]);
@@ -82,11 +101,17 @@ export default function LocationInput({
 
   const handleSuggestionClick = (suggestion: LocationSuggestion) => {
     const locationName = suggestion.display_name.split(",")[0]; // Take first part of address
+
+    // Update the input value first
     onChange(locationName);
+
+    // Then call the location select handler
     onLocationSelect({
       name: locationName,
       position: [parseFloat(suggestion.lat), parseFloat(suggestion.lon)],
     });
+
+    // Clear suggestions and hide dropdown
     setSuggestions([]);
     setShowSuggestions(false);
   };
@@ -95,15 +120,17 @@ export default function LocationInput({
     onChange("");
     setSuggestions([]);
     setShowSuggestions(false);
+    onClear?.(); // Call the clear callback if provided
     inputRef.current?.focus();
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
+      // Check if the click is outside the entire component container
+      const target = event.target as Node;
+      const container = inputRef.current?.parentElement?.parentElement;
+
+      if (container && !container.contains(target)) {
         setShowSuggestions(false);
       }
     };
@@ -158,8 +185,17 @@ export default function LocationInput({
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.id || `${suggestion.lat}-${suggestion.lon}`}
-              className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border last:border-b-0 flex items-start gap-3"
-              onClick={() => handleSuggestionClick(suggestion)}
+              type="button"
+              className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border last:border-b-0 flex items-start gap-3 cursor-pointer"
+              onMouseDown={(e) => {
+                // Prevent the input from losing focus before the click event
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSuggestionClick(suggestion);
+              }}
             >
               <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
