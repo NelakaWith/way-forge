@@ -36,48 +36,11 @@ interface MapNode {
 }
 
 // Predefined nodes for route optimization (Colombo area)
-const availableNodes = [
-  {
-    id: "colombo-fort",
-    position: [6.9271, 79.8612] as [number, number],
-    name: "Colombo Fort",
-  },
-  {
-    id: "pettah",
-    position: [6.9355, 79.85] as [number, number],
-    name: "Pettah Market",
-  },
-  {
-    id: "galle-face",
-    position: [6.9218, 79.8438] as [number, number],
-    name: "Galle Face Green",
-  },
-  {
-    id: "mount-lavinia",
-    position: [6.8344, 79.8631] as [number, number],
-    name: "Mount Lavinia",
-  },
-  {
-    id: "dehiwala",
-    position: [6.8518, 79.8631] as [number, number],
-    name: "Dehiwala",
-  },
-  {
-    id: "bambalapitiya",
-    position: [6.8851, 79.856] as [number, number],
-    name: "Bambalapitiya",
-  },
-  {
-    id: "wellawatte",
-    position: [6.8682, 79.8554] as [number, number],
-    name: "Wellawatte",
-  },
-  {
-    id: "kollupitiya",
-    position: [6.9063, 79.8492] as [number, number],
-    name: "Kollupitiya",
-  },
-];
+const availableNodes: {
+  id: string;
+  name: string;
+  position: LatLngExpression;
+}[] = [];
 
 export default function Home() {
   // Location states for autocomplete inputs

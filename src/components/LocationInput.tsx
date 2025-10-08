@@ -43,43 +43,62 @@ export default function LocationInput({
   const searchLocations = async (query: string) => {
     if (!query || query.length < 3) {
       setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Using Nominatim (OpenStreetMap) geocoding service
-      // First try with Sri Lanka priority, then fallback to global search
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&limit=3&countrycodes=lk&addressdetails=1`
-      );
+      // Try Sri Lanka first for better local results
+      const sriLankaUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=5&countrycodes=lk&addressdetails=1`;
 
-      let data: LocationSuggestion[] = [];
-      if (response.ok) {
-        data = await response.json();
-      }
+      const globalUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        query
+      )}&limit=3&addressdetails=1`;
 
-      // If we don't have enough results from Sri Lanka, search globally
-      if (data.length < 3) {
-        const globalResponse = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            query
-          )}&limit=${5 - data.length}&addressdetails=1`
-        );
+      const [sriLankaResponse, globalResponse] = await Promise.all([
+        fetch(sriLankaUrl),
+        fetch(globalUrl),
+      ]);
 
-        if (globalResponse.ok) {
-          const globalData: LocationSuggestion[] = await globalResponse.json();
-          data = [...data, ...globalData];
-        }
-      }
+      const sriLankaData = await sriLankaResponse.json();
+      const globalData = await globalResponse.json();
 
-      setSuggestions(data);
-      setShowSuggestions(true);
+      // Combine results, prioritizing Sri Lanka
+      const combinedResults = [...sriLankaData, ...globalData];
+
+      // Remove duplicates based on coordinates and create unique suggestions
+      const uniqueSuggestions = combinedResults
+        .filter((item, index, self) => {
+          const coordKey = `${parseFloat(item.lat).toFixed(6)}-${parseFloat(
+            item.lon
+          ).toFixed(6)}`;
+          return (
+            index ===
+            self.findIndex(
+              (other) =>
+                `${parseFloat(other.lat).toFixed(6)}-${parseFloat(
+                  other.lon
+                ).toFixed(6)}` === coordKey
+            )
+          );
+        })
+        .slice(0, 8) // Limit to 8 results
+        .map((item, index) => ({
+          ...item,
+          id: item.osm_id
+            ? `osm-${item.osm_id}`
+            : `coord-${item.lat}-${item.lon}-${index}`, // Ensure unique ID
+        }));
+
+      setSuggestions(uniqueSuggestions);
+      setShowSuggestions(uniqueSuggestions.length > 0);
     } catch (error) {
-      console.error("Error searching locations:", error);
+      console.error("Geocoding error:", error);
       setSuggestions([]);
+      setShowSuggestions(false);
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +114,12 @@ export default function LocationInput({
 
     // Set new timer for debounced search
     debounceTimer.current = setTimeout(() => {
-      searchLocations(newValue);
+      if (newValue.trim()) {
+        searchLocations(newValue);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
     }, 300);
   };
 
@@ -184,7 +208,7 @@ export default function LocationInput({
         <div className="absolute z-50 w-full bg-background border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((suggestion) => (
             <button
-              key={suggestion.id || `${suggestion.lat}-${suggestion.lon}`}
+              key={suggestion.id}
               type="button"
               className="w-full text-left px-4 py-3 hover:bg-muted border-b border-border last:border-b-0 flex items-start gap-3 cursor-pointer"
               onMouseDown={(e) => {
